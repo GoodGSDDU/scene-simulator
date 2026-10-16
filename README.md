@@ -18,8 +18,7 @@ flowchart LR
 
 | 附件 | 体积 | 说明 |
 | --- | --- | --- |
-| `radar-sim-<版本>-win64.zip` | 79 MB | **推荐**。解压后双击 `雷达仿真器.exe`；启动快，`templates/`、`examples/` 可以随手改 |
-| `radar-sim-<版本>-win64-single.exe` | 72 MB | 单文件、免解压，代价是每次启动多花 2–3 秒 |
+| `radar-sim-<版本>-win64.zip` | 79 MB | 解压后双击 `雷达仿真器.exe`；启动快，`templates/`、`examples/` 可以随手改 |
 
 `SHA256SUMS.txt` 是同目录的校验值。每个包在生成时都会真的建窗口、跑完仿真、导出数据再用模板读回来，任何一项不过就不会发出来。
 

@@ -6,8 +6,7 @@
 产出到 ``release/``：
 
     radar-sim-<版本>-win64.zip         文件夹版（启动快，templates/ 可直接改）
-    radar-sim-<版本>-win64-single.exe  单文件版
-    SHA256SUMS.txt                     前两者的校验值
+    SHA256SUMS.txt                     校验值
 
 附件名用 ASCII，避免下载链接、CI 日志和 ``gh`` 命令行各处的编码坑；
 压缩包里仍是原来的中文文件名（``zipfile`` 会自动置 UTF-8 标志位）。
@@ -21,7 +20,6 @@ from __future__ import annotations
 import hashlib
 import os
 import re
-import shutil
 import sys
 import zipfile
 from pathlib import Path
@@ -38,7 +36,6 @@ except Exception:                                          # pragma: no cover
     pass
 
 FOLDER_BUILD = DIST / "雷达仿真器"
-ONEFILE_BUILD = DIST / "雷达仿真器-单文件版.exe"
 
 
 def declared_version() -> str:
@@ -82,10 +79,8 @@ def zip_folder(src: Path, dst: Path) -> None:
 
 
 def main() -> int:
-    missing = [p for p in (FOLDER_BUILD, ONEFILE_BUILD) if not p.exists()]
-    if missing:
-        for path in missing:
-            print(f"[assets] 缺少构建产物：{path}", file=sys.stderr)
+    if not FOLDER_BUILD.exists():
+        print(f"[assets] 缺少构建产物：{FOLDER_BUILD}", file=sys.stderr)
         print("[assets] 先跑 python packaging/build.py", file=sys.stderr)
         return 1
 
@@ -99,16 +94,13 @@ def main() -> int:
     print(f"[assets] 压缩 {FOLDER_BUILD.name}/ ...", flush=True)
     zip_folder(FOLDER_BUILD, folder_zip)
 
-    single_exe = OUT / f"radar-sim-{version}-win64-single.exe"
-    shutil.copy2(ONEFILE_BUILD, single_exe)
-
     with zipfile.ZipFile(folder_zip) as archive:
         entries = archive.namelist()
     if not any(name.endswith("雷达仿真器.exe") for name in entries):
         print("[assets] 压缩包里没有 雷达仿真器.exe，产物不完整", file=sys.stderr)
         return 1
 
-    assets = [folder_zip, single_exe]
+    assets = [folder_zip]
     sums = OUT / "SHA256SUMS.txt"
     sums.write_text(
         "\n".join(f"{sha256(p)}  {p.name}" for p in assets) + "\n", encoding="utf-8"

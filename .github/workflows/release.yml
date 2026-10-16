@@ -1,6 +1,8 @@
 name: 打包与发布
 
 # 打个 tag（例如 v0.1.0）就会：跑测试 → 打包 exe（含冻结包自检）→ 建 Release 挂附件。
+# 只发布文件夹版（启动快、templates/ 可直接改）；单文件版体积更小但每次启动要解压，
+# 如需要可把下面的 --only dir 去掉，并恢复 make_assets.py 里的单文件附件。
 # 也可以手动触发，只在 Actions 的 Artifacts 里留一份构建产物，不发 Release。
 on:
   push:
@@ -46,8 +48,8 @@ jobs:
 
       # build.py 打包完会真的运行 exe 自己的 --selftest，坏包在这里就被拦下，
       # 不会漏到用户手里。
-      - name: 打包（文件夹版 + 单文件版）
-        run: python packaging/build.py
+      - name: 打包（文件夹版）
+        run: python packaging/build.py --only dir
 
       - name: 生成发布附件
         run: python .github/scripts/make_assets.py
