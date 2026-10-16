@@ -4,12 +4,11 @@
 | --- | --- |
 | 文档版本 | v0.2 |
 | 状态 | 核心约定已定；Q1–Q4 已确认，其余问题按默认方案实现 |
-| 技术栈 | Python 3.11+ / PySide6 / NumPy / Matplotlib / SciPy |
+| 技术栈 | Python 3.11+ / PySide6 / NumPy / Matplotlib |
 | 雷达体制 | FMCW 调频连续波（波形级仿真）+ 理想点云真值 |
 | 默认雷达配置 | TI IWR1843 实测配置：77 GHz / S=29.982 THz/s / Tr=60 µs / Tc=160 µs / 256×128 / 3TX×4RX |
 | 电磁模型 | 镜像法射线追踪，最多 2 次反射（镜面 + 漫散射双分量） |
 | 输出 | `signal.bin`（int16，支持 TI DCA1000 原生布局与简化交错 IQ 双格式）+ `meta.json` + `pointcloud_gt.csv` |
-| 参考项目 | `使用过的作业文件\26.5\SLAM`（MATLAB 雷达仿真链）——已逐文件评审，其 20 处缺陷与本项目的规避方式见 §10.6 |
 
 ---
 
@@ -55,7 +54,7 @@
 
 ### 2.1 全局约定（单一真源）
 
-> **教训来源**：参考项目 SLAM 的同一个 MATLAB 工程里并存了 2~3 套维度顺序、两套相位符号、两套带宽口径，导致 `main.m` 根本无法串起来运行。本项目必须**单一真源 + 加载即断言**。
+> **教训**：同一套雷达处理代码里若并存 2~3 套维度顺序、两套相位符号、两套带宽口径，各部分将无法串起来运行。因此本项目必须**单一真源 + 加载即断言**。
 
 下表是**全项目唯一真源**，UI、仿真内核、导出、三套模板必须完全一致；任何一处偏离即视为 bug。
 
@@ -121,56 +120,6 @@ flowchart TB
 ```
 
 **分层原则**：`core/` 不导入任何 `PySide6`，保证可以跑无界面批处理（数据集生成）。UI 只通过 `Simulator` 的公开接口交互。
-
-### 3.1 目录结构
-
-```
-场景模拟器/
-├─ docs/
-│  └─ DESIGN.md                     # 本文档
-├─ README.md
-├─ pyproject.toml
-├─ requirements.txt
-├─ src/radar_sim/
-│  ├─ __init__.py
-│  ├─ main.py                       # GUI 入口
-│  ├─ cli.py                        # 无界面批处理入口
-│  ├─ core/
-│  │  ├─ geometry.py                # 向量运算、射线-线段求交、镜像
-│  │  ├─ scene.py                   # Scene / Primitive / MaterialRef
-│  │  ├─ materials.py               # 材质预设库
-│  │  ├─ scatterers.py              # 图元 → 散射点集
-│  │  ├─ raytrace.py                # 遮挡判定 + 镜像法多径
-│  │  ├─ radar.py                   # RadarConfig + IQ 合成
-│  │  ├─ vehicle.py                 # 车辆运动学 + 路径跟随
-│  │  ├─ simulator.py               # 仿真主循环 / 帧调度
-│  │  └─ io_export.py               # signal.bin / meta.json / csv
-│  └─ ui/
-│     ├─ main_window.py
-│     ├─ canvas_view.py             # QGraphicsView + 网格/标尺
-│     ├─ scene_items.py             # 可拖拽/缩放的图元 Item
-│     ├─ property_panel.py
-│     ├─ radar_panel.py
-│     ├─ vehicle_panel.py
-│     ├─ sim_panel.py
-│     └─ signal_view.py             # IQ / 距离像 / RD 图 / 点云
-├─ templates/
-│  ├─ python/
-│  │  ├─ radar_io.py                # 读 signal.bin + meta.json
-│  │  ├─ process_demo.py            # 端到端处理示例
-│  │  ├─ requirements.txt
-│  │  └─ README.md
-│  ├─ notebook/
-│  │  └─ 雷达数据处理教学.ipynb      # 分步讲解
-│  └─ matlab/
-│     ├─ read_signal.m
-│     ├─ range_doppler_cfar.m
-│     └─ demo.m
-├─ examples/scenes/*.scene.json
-└─ tests/
-```
-
----
 
 ## 4. 场景模型
 
@@ -276,7 +225,7 @@ $$
 
 ### 5.1 参数表（全部可在 UI 调整）
 
-**默认值对齐 TI IWR1843 实测配置**（与参考项目 `radar_constants.m` 一致）。
+**默认值对齐 TI IWR1843 实测配置**。
 
 | 参数 | 符号 | 默认值 | 可选范围 | 单位 | 说明 |
 | --- | --- | --- | --- | --- | --- |
@@ -361,7 +310,7 @@ $$
 - $P_{ref}$ 为用户可设定的参考功率（默认 1 W，仅影响绝对幅度，不影响后续处理）。
 - **2D 等效 RCS**：$\sigma = a(\psi)^2 \cdot A_{eff}$，其中 $a(\psi)$ 由 §4.3 给出，$A_{eff} = l_{seg} \cdot h_{eff}$ 为该散射点的等效散射面积（$l_{seg}$ 为离散段长度，$h_{eff}$ 为俯视切面等效高度，默认 1 m，可按图元类型配置）。
 - 增益已按 $G$ 归一化，$G_t=G_r=10^{G/10}$。
-- **噪声按单个散射点定义**：$\mathrm{SNR}_i = P_{r,i}/P_n$，逐点写入真值表；**禁止**用"所有目标之和的功率"定义全局 SNR（参考项目就因此导致目标数一变、单目标 SNR 全变）。
+- **噪声按单个散射点定义**：$\mathrm{SNR}_i = P_{r,i}/P_n$，逐点写入真值表；**禁止**用"所有目标之和的功率"定义全局 SNR（否则目标数一变、单目标 SNR 就会全变）。
 
 ### 5.4 MIMO 模式与速度模糊（重要）
 
@@ -372,10 +321,10 @@ $N_t\times N_r$ 个虚拟阵元解决了角度分辨率，但**两种建模方�
 | `ideal`（默认） | 假设 $N_v$ 个虚拟阵元每个都能取到完整 $N_c$ 个 chirp（相位中心法 / 理想 MIMO） | $T_c$ | ±6.02 m/s | 常规仿真，测速范围够用 |
 | `tdm`（硬件保真） | 真实 AWR1843 的 TDM-MIMO：TX1/TX2/TX3 轮流发射，同一阵元每 $N_t$ 个 chirp 才出现一次 | $N_tT_c$ | ±2.01 m/s | 生成"像真硬件一样"的数据 |
 
-- `tdm` 模式下**必须**在 `meta.json` 写 `tdm_interleave: true` 与 `chirps_per_tx = N_c/N_t`，模板需先按 TX 解交织、再在每个 TX 的 $N_c/N_t$ 个 chirp 上做多普勒 FFT。**否则速度会错 $N_t$ 倍**（参考项目 SLAM 正是踩了这个坑，且仿真数据与硬件行为不一致）。
+- `tdm` 模式下**必须**在 `meta.json` 写 `tdm_interleave: true` 与 `chirps_per_tx = N_c/N_t`，模板需先按 TX 解交织、再在每个 TX 的 $N_c/N_t$ 个 chirp 上做多普勒 FFT。**否则速度会错 $N_t$ 倍**，且仿真数据与硬件行为不一致。
 - `ideal` 模式下各虚拟阵元 chirp 轴相同，直接按 $N_c$ 做多普勒 FFT。
 - 当车辆速度超过 $v_{\max}$ 时，UI 参数面板给出**速度模糊警告**，并把超限的真值点标黄。
-- **本项目 2D 方案只测方位角，不测俯仰角**——这同时天然规避了参考项目中"虚拟阵列几何自相矛盾导致俯仰角错 4 倍 + 栅瓣"的问题。
+- **本项目 2D 方案只测方位角，不测俯仰角**——这同时天然规避了虚拟阵列几何自相矛盾导致的"俯仰角错 4 倍 + 栅瓣"问题。
 
 ---
 
@@ -587,7 +536,7 @@ def synthesize_frame(scene, radar, pose, rng) -> np.ndarray:
 
 | `layout` | 说明 | 用途 |
 | --- | --- | --- |
-| `ti_dca1000`（默认） | TI DCA1000 原生格式，与 TI 官方 `readDCA1000.m` 及参考项目 `DCA1000_Read_Data.m` **完全兼容** | 直接复用既有 MATLAB/Python 工具链 |
+| `ti_dca1000`（默认） | TI DCA1000 原生格式，与 TI 官方 `readDCA1000.m` **完全兼容** | 直接复用既有 MATLAB/Python 工具链 |
 | `interleaved_iq` | 本项目简化格式，每采样 `[Re, Im]` 紧邻 | 手写极简解析时代码最短 |
 
 **`ti_dca1000`（默认）**
@@ -616,7 +565,7 @@ for m in range(Nc):
 
 - 单帧字节数 $= 4 N_c N_v N_s$（默认 1 572 864 B = 1.5 MiB）。
 - 文件总字节 $= \text{num\_frames} \times \text{frame\_bytes}$，帧按顺序紧邻排列。
-- 第 $f$ 帧字节偏移 $= f \times \text{frame\_bytes}$ → 模板必须用 `fseek` / `np.memmap` **直接定位，禁止逐帧从头读**（参考项目的 O(N²) 读法要读几十 GB）。
+- 第 $f$ 帧字节偏移 $= f \times \text{frame\_bytes}$ → 模板必须用 `fseek` / `np.memmap` **直接定位，禁止逐帧从头读**（逐帧重读是 O(N²) I/O，100 帧要读几十 GB）。
 - 无文件头、无分隔符，最大化解析自由度。
 
 ### 8.3 `meta.json` 架构
@@ -840,9 +789,9 @@ cube = permute(squeeze(cube), [3 2 1 4]);            % -> (Nc, Nv, Ns, F)
 
 ### 10.6 模板必须使用的标准公式（防坑清单）
 
-下表每一条都对应参考项目 SLAM 中**实际存在**的错误，模板实现时逐条对照：
+下表是模板实现时必须逐条对照的常见错误：
 
-| 类别 | ✅ 正确做法 | ❌ 参考项目中的错误写法 |
+| 类别 | ✅ 正确做法 | ❌ 常见错误写法 |
 | --- | --- | --- |
 | 帧定位 | `fseek(fid,(f-1)*frame_bytes,'bof')` 或 `np.memmap` | 每帧 `fread(fid, f*bytes)` 从头读 → O(N²) I/O |
 | 距离轴 | $R[k] = \dfrac{c f_s}{2 S N_s}k,\ k=0..N_s/2-1$ | 用 $c/(2B)$，$B=ST_r=1.8$ GHz（应为有效带宽 767 MHz） |
@@ -952,7 +901,7 @@ cube = permute(squeeze(cube), [3 2 1 4]);            % -> (Nc, Nv, Ns, F)
 | R4 | 是否需要**批处理模式**（无界面，批量生成数据集）？ | 做，`python -m radar_sim.cli --scene a.scene.json --frames 200 --out dataset/` |
 | R5 | 车辆自身是否作为散射体？ | 不做（雷达装在车上） |
 | R6 | 是否需要**录像/回放**？ | 只存位姿序列到 `meta.json` 用于复现，不做界面回放器 |
-| R7 | 是否需要**俯仰角**（3D 点云）？ | **不做**，只测方位角——同时规避参考项目中虚拟阵列几何矛盾的坑（§5.4） |
+| R7 | 是否需要**俯仰角**（3D 点云）？ | **不做**，只测方位角——同时规避虚拟阵列几何矛盾的坑（§5.4） |
 | R8 | 界面语言 / 单位？ | 中文界面（代码与注释用英文标识符）；角度显示用度、距离用米 |
 
 ---
@@ -1045,7 +994,7 @@ ALL OK
 | 8 | `MainWindow` 未回填 `duration/seed` 到面板 | 界面显示的时长与实际导出的帧数不一致 | `_sync_sim_panel()` + `blockSignals` |
 | 9 | 本文档 §10.5 MATLAB 示例 `reshape` 维度顺序错 | 用户照抄得到错乱 RD 图 | 改为列主序 `[2, Ns, Nv, Nc, F]` 并加显式警告 |
 
-> 注：#4 是最隐蔽的一个——它不是崩溃，而是**让多径功能悄悄失效**。这正是参考项目（见 §16 最后一行"约定漂移"风险）同类问题的翻版。
+> 注：#4 是最隐蔽的一个——它不是崩溃，而是**让多径功能悄悄失效**，属于 §16 最后一行"约定漂移"风险的一种。
 
 
 ---

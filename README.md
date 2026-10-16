@@ -143,10 +143,13 @@ python compare_gt.py   --data ../../dataset/demo --frames 20
 ```
 src/radar_sim/
 ├─ core/          仿真内核（不依赖 Qt，可无界面运行）
+│  ├─ constants.py     物理常量与全局符号/坐标约定
 │  ├─ geometry.py      射线/线段求交、镜像、多边形
 │  ├─ scene.py         图元、材质、场景 JSON
+│  ├─ materials.py     材质预设 + 双分量散射模型
 │  ├─ scatterers.py    图元 → 散射点离散化
 │  ├─ raytrace.py      遮挡判定 + 镜像法多径（≤2 次反射）
+│  ├─ radar_config.py  FMCW 雷达参数与全部派生指标
 │  ├─ radar.py         FMCW IQ 合成 + 热噪声 + 真值表
 │  ├─ framing.py       标准距离/速度/角度轴、距离-多普勒
 │  ├─ detection.py     CA-CFAR、FFT 测角、点云
@@ -160,7 +163,7 @@ src/radar_sim/
 templates/        Python / Jupyter / MATLAB 处理模板
 examples/scenes/  示例场景
 packaging/        打包成 exe（build.py / radar_sim.spec / make_icon.py）
-scripts/          bench.py 性能探针、acceptance.py 端到端验收
+scripts/          bench.py 性能探针、acceptance.py 端到端验收、make_examples.py 示例场景、screenshot.py 截图
 docs/DESIGN.md    设计文档（参数、算法、格式、验收标准、打包）
 .github/          release.yml：打 tag 自动打包并发 Release
 ```
@@ -177,7 +180,7 @@ docs/DESIGN.md    设计文档（参数、算法、格式、验收标准、打�
 ## 测试
 
 ```bash
-QT_QPA_PLATFORM=offscreen python -m pytest        # 244 项
+QT_QPA_PLATFORM=offscreen python -m pytest        # 259 项
 ```
 
 覆盖：几何求交、场景序列化、遮挡与多径（含解析解校验）、IQ 合成与雷达方程、确定性（同 seed 逐字节一致）、双布局互换、车辆运动学、GUI 冒烟（离屏）、模板与内核公式一致性。
