@@ -823,7 +823,7 @@ cube = permute(squeeze(cube), [3 2 1 4]);            % -> (Nc, Nv, Ns, F)
 | A10 | 车辆运动学与路径跟随 | `vehicle.py` | 控制量 + 位姿 → 新位姿 |
 | A11 | 帧调度与确定性 RNG | `simulator.py` | 场景 + 参数 → 帧序列 |
 | A12 | 二进制打包与元数据（`ti_dca1000` / `interleaved_iq` 双布局） | `io_export.py` | 帧缓冲 → `signal.bin` + `meta.json` |
-| A12b | 解析双布局 + 形状断言 + 标准轴构造 | 模板 `radar_io.py` / `framing.py` | `signal.bin` → 立方体 + 距离/速度/角度轴 |
+| A12b | 解析双布局 + 形状断言 + 标准轴构造 | `radar_io.py`（模板） / `framing.py`（核心） | `signal.bin` → 立方体 + 距离/速度/角度轴 |
 | A13 | 距离/多普勒 FFT | 模板 + `signal_view` | 立方体 → RD 图 |
 | A14 | 2D CA-CFAR | 模板 | RD 图 → 检测列表 |
 | A15 | 阵元维 DOA | 模板 | 检测处的阵元向量 → 方位角 |
