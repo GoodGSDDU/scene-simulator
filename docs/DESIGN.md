@@ -710,49 +710,47 @@ flowchart LR
 
 | 文件 | 作用 |
 | --- | --- |
-| `radar_io.py` | `load_meta()` / `load_frame(i)`：把 `signal.bin`（两种 `layout` 都支持）读成 `(Nc, Nv, Ns)` 复数数组，**加载时 `assert` 形状与 `axis_order`**，自动套用 `iq_scale`，用 `np.memmap` 定位帧 |
-| `framing.py` | 标准轴构造：`range_axis()` / `velocity_axis()` / `angle_axis()`，全部按 §10.6 公式实现 |
-| `process_demo.py` | 端到端：读数据 → 距离/多普勒 FFT → CFAR → 测角 → 点云 → 出 4 张图（PNG）+ 打印统计 |
-| `cfar.py` | 2D CA-CFAR（可配训练单元/保护单元/虚警率），返回检测与 SNR |
-| `doa.py` | 阵元维 FFT 测角 + 可选 MUSIC |
-| `compare_gt.py` | 读 `pointcloud_gt.csv`，算测距/测速/测角误差、漏检率、虚警率 |
-| `README.md` | 5 分钟上手说明 |
+| `radar_io.py` | `RadarFile` 类：读 `signal.bin` + `meta.json`（两种 `layout`），加载时断言形状与轴序，自动套用 `iq_scale` |
+| `cfar.py` | `ca_cfar_2d()` 2D CA-CFAR、`pick_peaks()` 非极大抑制、`estimate_azimuth()` 阵元维 FFT 测角、`extract_pointcloud()` 点云提取 |
+| `process_demo.py` | 端到端：读数据 → 距离/多普勒 FFT → CFAR → 测角 → 点云，出 4 张 PNG + 打印统计 |
+| `compare_gt.py` | 与 `pointcloud_gt.csv` 对比，输出 `gt_compare.png` 与 `detections.csv` |
+| `README.md` | 上手说明 |
 
-**核心 API 约定（供用户直接调用）**：
+**RadarFile API**（`radar_io` 与 `cfar` 只需 numpy）：
 
 ```python
 from radar_io import RadarFile
-rf = RadarFile("out/")                     # 自动读取 meta.json
-print(rf.summary())                        # 打印雷达参数与派生指标
-cube = rf.frame(0)                         # -> np.ndarray (Nc, Ne, Ns) complex128
-rd   = rf.range_doppler(0, window="hann")  # -> (R 轴, v 轴, RD 矩阵)
-dets = rf.detect(0, pfa=1e-3)              # -> list[Detection(range, vel, az, snr)]
-pts  = rf.to_pointcloud(0)                 # -> 世界坐标点云 (x, y, v, snr)
+
+rf = RadarFile("dataset/demo")
+print(rf.summary())                          # 雷达参数与派生指标
+cube = rf.frame(0)                           # (Nc, Nv, Ns) complex128
+rd_db, r_axis, v_axis = rf.range_doppler(0)  # 距离-多普勒图（dB）与两根轴
 ```
+
+检测与点云走 `cfar.py`：`ca_cfar_2d(power, guard=(2,2), train=(4,4), pfa=1e-3)` 返回 `(mask, alpha, threshold)`，再经 `pick_peaks()` / `estimate_azimuth()` / `extract_pointcloud()` 得到点云。
 
 ### 10.3 Jupyter 教学模板
 
-`雷达数据处理教学.ipynb`，分节讲解，每节配文字说明 + 可视化：
+`雷达数据处理教学.ipynb`，7 节，每节配文字说明 + 可视化：
 
-1. 环境与数据加载（先看 `meta.json` 里都写了什么）
-2. 原始 IQ 长什么样（时域 I/Q 曲线、复平面）
-3. 单个 chirp 做 FFT → 距离像（解释 $\Delta R$ 与 bin 的对应关系）
-4. 跨 chirp 做 FFT → 距离-多普勒图（解释 $\Delta v$、模糊速度）
-5. 阵元维 FFT → 测角（解释角分辨率、栅瓣）
-6. CFAR 检测（解释训练窗/保护窗/Pfa）
-7. 点云生成与世界坐标转换
-8. 与真值对比（误差散点、漏检/虚警统计）
-9. 参数实验：改带宽 / 改 chirp 数，观察分辨率与数据量的变化
+1. 加载数据，先看参数（`meta.json` 里写了什么）
+2. 原始 IQ 与距离像
+3. 距离-多普勒图
+4. 角度测量（阵列 FFT）
+5. CFAR 检测与点云
+6. 与真值对比
+7. 参数实验：改带宽 / chirp 数，观察分辨率与数据量的变化
 
 ### 10.4 MATLAB 模板
 
+公式与 Python 模板一致（§10.6）。
+
 | 文件 | 作用 |
 | --- | --- |
-| `read_signal.m` | 读 `signal.bin`（`fread(fid, N, 'int16=>double')`）+ 解析 `meta.json`（`jsondecode`）；支持两种 `layout`，用 `fseek` 定位帧 |
-| `read_signal_ti.m` | **TI DCA1000 原生解析**：等价于 TI 官方 `readDCA1000.m` 的解包逻辑，可直接与你现有脚本对接 |
-| `range_doppler_cfar.m` | 距离/多普勒 FFT、CFAR、测角，返回点云 |
-| `demo.m` | 主脚本：跑完整链路并画图（`imagesc` + 点云叠加） |
-| `plot_gt_compare.m` | 与真值 CSV 对比绘图 |
+| `read_signal.m` | `[cube, meta] = read_signal(folder, frame)`：读单帧为 `(Nc, Nv, Ns)` 复数，两种 `layout` 都支持 |
+| `ca_cfar_2d.m` | `[mask, alpha, threshold] = ca_cfar_2d(power, guard, train, pfa)` |
+| `pick_peaks.m` | `[di, ki] = pick_peaks(power, mask, guard, maxPeaks)`：命中点上的贪心非极大抑制 |
+| `demo.m` | `demo(datasetFolder)`：跑完整链路并画图 |
 
 ### 10.5 二进制解析示例（模板可复制的最小代码）
 
@@ -799,14 +797,12 @@ cube = permute(squeeze(cube), [3 2 1 4]);            % -> (Nc, Nv, Ns, F)
 | 角度轴 | $\theta[k]=\arcsin\!\left(\dfrac{(k-N_{fft}/2)\lambda}{N_{fft}d}\right)$ | 线性 $(\mathrm{idx}-N/2)\cdot180/N$ |
 | 零频 bin | `fftshift` 后零频在 **0-based 索引 $N/2$** | 取 $N/2-1$ → 整体偏 1 个 bin |
 | CA-CFAR | 阈值 $=\alpha\bar{P}_{noise}$，$\alpha=N_{ref}\left(P_{fa}^{-1/N_{ref}}-1\right)$ | 用 `mean + 1.5σ`，`P_fa=1e-6` 声明了却完全没用 |
-| MUSIC | 多快拍或前后向空间平滑后再求 $R$ | 单快拍 $R=aa^H$ → 秩 1，结果无意义 |
 | 导向矢量 | 全项目统一 $\exp\!\left(+j2\pi dk\sin\theta/\lambda\right)$ | 一处 `+1j` 一处 `-1j` → 角度符号反转 |
 | 速度符号 | 正径向速度 = 远离（§2.4） | $+4\pi vt/\lambda$ 与 $-4\pi vt/\lambda$ 两套并存 |
 | 解速度模糊 | $k=\mathrm{round}\!\left(\dfrac{v}{2v_{\max}}\right)$，或与跟踪预测最近邻 | $k=\mathrm{round}\!\left(\dfrac{v-100}{2v_{\max}}\right)$ → $v=10,\ v_{max}=6.08$ 算出 95.1 m/s |
 | 窗函数 | `hann(N+1)[:-1]` / `hann(N,'periodic')` | `hann(N)` 对称窗 |
 | 随机数 | `default_rng(seed)`，seed 写入 meta | 全局 `rand` 且无种子 → 结果不可复现 |
 | SNR 定义 | 按**单个散射点**定义并逐点写入真值表 | 按"所有目标之和"定义 + 参数被硬编码覆盖 |
-| 距离徙动 | 若需校正，必须先做 chirp 相关相位补偿再沿 chirp 维 IFFT | 简单整数搬移 + 与 chirp 无关的累加 → 动目标全部塌缩到零多普勒 |
 | 数组维度 | 单一真源 $\texttt{(Nc,Nv,Ns)}$，加载即断言 | 生成用 $\texttt{(Samples,Chirps,Ant)}$、处理用 $\texttt{(Chirps,Rx,Samples)}$ |
 
 ---
