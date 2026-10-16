@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+
+# PyInstaller build artefacts
+build/
+dist/
+release/
+packaging/build_*.log
+packaging/icon_preview_*.png
+
+# generated simulation output / figures
+dataset/
+*.bin
+templates/python/figures/
+templates/python/detections.csv
+templates/python/gt_compare.png
+selftest_dev.txt
+*自检报告*.txt
+
+# 论文 / 说明文档：只在本地保留，不进仓库
+*.docx
+
+# editors / OS
+.vscode/
+.idea/
+Thumbs.db
+desktop.ini
+
+# 本地跑测试 / 探针留下的临时文件
+/_*.log
+/_probe.txt
+/tr3.txt
+/%SystemDrive%/

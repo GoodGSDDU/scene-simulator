@@ -1,0 +1,251 @@
+{
+  "version": "1.0",
+  "units": {
+    "length": "m",
+    "angle": "deg"
+  },
+  "bounds": {
+    "width": 40.0,
+    "height": 60.0
+  },
+  "materials": [
+    {
+      "id": "metal",
+      "name": "金属板",
+      "rho": 0.95,
+      "eta": 0.05,
+      "tau": 0.0,
+      "absorption_db": 0.0,
+      "phase_deg": 0.0,
+      "sigma_psi_deg": 6.0,
+      "penetration_db_per_m": 20.0,
+      "color": "#b8c4d4"
+    },
+    {
+      "id": "concrete",
+      "name": "混凝土墙",
+      "rho": 0.45,
+      "eta": 0.55,
+      "tau": 0.0,
+      "absorption_db": 0.0,
+      "phase_deg": 0.0,
+      "sigma_psi_deg": 12.0,
+      "penetration_db_per_m": 20.0,
+      "color": "#9a9a92"
+    },
+    {
+      "id": "glass",
+      "name": "玻璃",
+      "rho": 0.25,
+      "eta": 0.1,
+      "tau": 0.85,
+      "absorption_db": 0.0,
+      "phase_deg": 0.0,
+      "sigma_psi_deg": 6.0,
+      "penetration_db_per_m": 20.0,
+      "color": "#a8d8e8"
+    },
+    {
+      "id": "wood",
+      "name": "木板",
+      "rho": 0.3,
+      "eta": 0.7,
+      "tau": 0.0,
+      "absorption_db": 0.0,
+      "phase_deg": 0.0,
+      "sigma_psi_deg": 15.0,
+      "penetration_db_per_m": 20.0,
+      "color": "#c8a878"
+    },
+    {
+      "id": "human",
+      "name": "人体",
+      "rho": 0.35,
+      "eta": 0.6,
+      "tau": 0.0,
+      "absorption_db": 0.0,
+      "phase_deg": 0.0,
+      "sigma_psi_deg": 14.0,
+      "penetration_db_per_m": 20.0,
+      "color": "#e8c0a0"
+    },
+    {
+      "id": "vegetation",
+      "name": "植被",
+      "rho": 0.12,
+      "eta": 0.95,
+      "tau": 0.0,
+      "absorption_db": 0.0,
+      "phase_deg": 0.0,
+      "sigma_psi_deg": 20.0,
+      "penetration_db_per_m": 20.0,
+      "color": "#6f9f6f"
+    },
+    {
+      "id": "absorber",
+      "name": "吸波材料",
+      "rho": 0.02,
+      "eta": 0.9,
+      "tau": 0.0,
+      "absorption_db": 0.0,
+      "phase_deg": 0.0,
+      "sigma_psi_deg": 20.0,
+      "penetration_db_per_m": 20.0,
+      "color": "#4a4a5a"
+    },
+    {
+      "id": "custom",
+      "name": "自定义",
+      "rho": 0.5,
+      "eta": 0.5,
+      "tau": 0.0,
+      "absorption_db": 0.0,
+      "phase_deg": 0.0,
+      "sigma_psi_deg": 10.0,
+      "penetration_db_per_m": 20.0,
+      "color": "#c0c0c0"
+    }
+  ],
+  "primitives": [
+    {
+      "id": "542153ad",
+      "kind": "wall",
+      "name": "下侧墙",
+      "material_id": "concrete",
+      "layer": 0,
+      "visible": true,
+      "locked": false,
+      "params": {
+        "points": [
+          [
+            8.0,
+            20.0
+          ],
+          [
+            32.0,
+            20.0
+          ]
+        ],
+        "thickness": 0.4
+      }
+    },
+    {
+      "id": "2c8fde99",
+      "kind": "wall",
+      "name": "上侧墙",
+      "material_id": "metal",
+      "layer": 0,
+      "visible": true,
+      "locked": false,
+      "params": {
+        "points": [
+          [
+            8.0,
+            40.0
+          ],
+          [
+            32.0,
+            40.0
+          ]
+        ],
+        "thickness": 0.4
+      }
+    },
+    {
+      "id": "ccd10cfe",
+      "kind": "wall",
+      "name": "尽头墙",
+      "material_id": "metal",
+      "layer": 0,
+      "visible": true,
+      "locked": false,
+      "params": {
+        "points": [
+          [
+            32.0,
+            20.0
+          ],
+          [
+            32.0,
+            40.0
+          ]
+        ],
+        "thickness": 0.4
+      }
+    },
+    {
+      "id": "a90ac5b8",
+      "kind": "point",
+      "name": "金属目标",
+      "material_id": "metal",
+      "layer": 0,
+      "visible": true,
+      "locked": false,
+      "params": {
+        "x": 24.0,
+        "y": 32.0
+      }
+    },
+    {
+      "id": "5dba3f8a",
+      "kind": "circle",
+      "name": "植被",
+      "material_id": "vegetation",
+      "layer": 0,
+      "visible": true,
+      "locked": false,
+      "params": {
+        "x": 18.0,
+        "y": 26.0,
+        "r": 1.2
+      }
+    }
+  ],
+  "vehicle": {
+    "start": [
+      6.0,
+      30.0,
+      0.0
+    ],
+    "mode": "path",
+    "path": [
+      [
+        6.0,
+        30.0
+      ],
+      [
+        28.0,
+        30.0
+      ]
+    ],
+    "path_speed": 4.0
+  },
+  "radar": {
+    "start_freq_hz": 77000000000.0,
+    "slope_hz_per_s": 29982000000000.0,
+    "ramp_time_s": 6e-05,
+    "idle_time_s": 0.0001,
+    "samples_per_chirp": 256,
+    "sample_rate_hz": 10000000.0,
+    "chirps_per_frame": 128,
+    "tx_elements": 3,
+    "rx_elements": 4,
+    "element_spacing_ratio": 0.5,
+    "mimo_mode": "ideal",
+    "tx_power_dbm": 12.0,
+    "antenna_gain_dbi": 12.0,
+    "noise_figure_db": 12.0,
+    "system_loss_db": 3.0,
+    "adc_bits": 16,
+    "frame_period_s": 0.08,
+    "enable_noise": true,
+    "max_reflection_order": 1
+  },
+  "simulation": {
+    "seed": 42,
+    "frame_period_s": 0.08,
+    "duration_s": 4.0,
+    "segment_len_m": 0.5,
+    "max_paths": 256
+  }
+}

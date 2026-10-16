@@ -1,0 +1,77 @@
+name: 打包与发布
+
+# 打个 tag（例如 v0.1.0）就会：跑测试 → 打包 exe（含冻结包自检）→ 建 Release 挂附件。
+# 也可以手动触发，只在 Actions 的 Artifacts 里留一份构建产物，不发 Release。
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+# 建 Release 需要写权限；GITHUB_TOKEN 默认是只读的。
+permissions:
+  contents: write
+
+env:
+  # 冻结包自检要在没有显示器的环境里跑。PyInstaller 本身不受影响：
+  # packaging/build.py 在调用它之前会把 QT_QPA_PLATFORM 从环境里摘掉。
+  QT_QPA_PLATFORM: offscreen
+  # exe 的输出是 UTF-8，父进程也要按 UTF-8 解码，否则中文日志会让构建脚本抛异常。
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: utf-8
+
+jobs:
+  windows:
+    name: Windows 发行包
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e ".[dev,packaging]"
+
+      - name: 单元测试
+        run: python -m pytest
+
+      # build.py 打包完会真的运行 exe 自己的 --selftest，坏包在这里就被拦下，
+      # 不会漏到用户手里。
+      - name: 打包（文件夹版 + 单文件版）
+        run: python packaging/build.py
+
+      - name: 生成发布附件
+        run: python .github/scripts/make_assets.py
+
+      - name: 留存构建产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: radar-sim-windows
+          path: release/*
+          if-no-files-found: error
+
+      - name: 发布 Release
+        if: github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          $assets = @(Get-ChildItem release -File | ForEach-Object { $_.FullName })
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --title $tag --generate-notes
+          }
+          # --clobber：同一个 tag 重跑时覆盖旧附件，而不是报错退出
+          gh release upload $tag $assets --clobber
+
+          Write-Host "已发布 $tag，附件 $($assets.Count) 个"

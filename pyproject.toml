@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "radar-sim"
+version = "0.1.0"
+description = "2D scene radar simulator (FMCW) with interactive scene editor"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "matplotlib>=3.8",
+    "PySide6>=6.6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+packaging = ["pyinstaller>=6.6", "pillow>=10.0"]
+
+[project.scripts]
+radar-sim = "radar_sim.main:main"
+radar-sim-cli = "radar_sim.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
